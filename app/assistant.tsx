@@ -1,20 +1,20 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { mcpClient, MCPResponse } from '../src/services/mcp-client';
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { mcpClient, MCPResponse } from "../src/services/mcp-client";
 
 interface Message {
   id: string;
@@ -28,13 +28,13 @@ interface Message {
 export default function AssistantScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: 'welcome-message',
-      text: 'Hello! I\'m your gallery assistant. I can help you with your images. What would you like to know?',
+      id: "welcome-message",
+      text: "Assistant ready. How can I help?",
       isUser: false,
       timestamp: new Date(),
     },
   ]);
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export default function AssistantScreen() {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: "images",
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -57,8 +57,8 @@ export default function AssistantScreen() {
         setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      console.error("Error:", error);
+      Alert.alert("Error", "Failed to select image");
     }
   };
 
@@ -68,19 +68,16 @@ export default function AssistantScreen() {
 
   const testConnection = async () => {
     try {
-      console.log('Testing MCP connection...');
       const connected = await mcpClient.testConnection();
-      console.log('MCP connection result:', connected);
       setIsConnected(connected);
-      
+
       if (connected) {
-        // Add success message
-        setMessages(prev => {
-          const hasSuccessMessage = prev.some(msg => msg.id.startsWith('success-'));
-          if (!hasSuccessMessage) {
+        setMessages((prev) => {
+          const hasSuccess = prev.some((msg) => msg.id.startsWith("success-"));
+          if (!hasSuccess) {
             const successMessage: Message = {
               id: `success-${Date.now()}`,
-              text: '✅ Connected to MCP server! I can now help you with your gallery.',
+              text: "System online. Connected to gallery.",
               isUser: false,
               timestamp: new Date(),
             };
@@ -88,42 +85,10 @@ export default function AssistantScreen() {
           }
           return prev;
         });
-      } else {
-        // Add offline message only if not already present
-        setMessages(prev => {
-          const hasOfflineMessage = prev.some(msg => msg.id.startsWith('offline-'));
-          if (!hasOfflineMessage) {
-            const offlineMessage: Message = {
-              id: `offline-${Date.now()}`,
-              text: 'I\'m currently offline, but I can still help you with basic gallery questions! Try asking about viewing images, uploading photos, or searching your collection.',
-              isUser: false,
-              timestamp: new Date(),
-              isOffline: true,
-            };
-            return [...prev, offlineMessage];
-          }
-          return prev;
-        });
       }
     } catch (error) {
-      console.warn('Connection test failed:', error);
+      console.error("Connection test failed:", error);
       setIsConnected(false);
-      
-      // Add offline message only if not already present
-      setMessages(prev => {
-        const hasOfflineMessage = prev.some(msg => msg.id.startsWith('offline-'));
-        if (!hasOfflineMessage) {
-          const offlineMessage: Message = {
-            id: `offline-${Date.now()}`,
-            text: 'I\'m currently offline, but I can still help you with basic gallery questions! Try asking about viewing images, uploading photos, or searching your collection.',
-            isUser: false,
-            timestamp: new Date(),
-            isOffline: true,
-          };
-          return [...prev, offlineMessage];
-        }
-        return prev;
-      });
     }
   };
 
@@ -131,21 +96,19 @@ export default function AssistantScreen() {
     if ((!inputText.trim() && !selectedImage) || isTyping) return;
 
     const userMessage: Message = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      text: inputText.trim() || (selectedImage ? 'Image uploaded' : ''),
+      id: `user-${Date.now()}`,
+      text: inputText.trim() || (selectedImage ? "Image attachment" : ""),
       isUser: true,
       timestamp: new Date(),
       imageUri: selectedImage || undefined,
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText("");
     setSelectedImage(null);
     setIsTyping(true);
 
     try {
-      console.log('Sending message to MCP:', userMessage.text);
-      // Send message to MCP server
       const response: MCPResponse = await mcpClient.sendMessage({
         message: userMessage.text,
         context: {
@@ -155,139 +118,143 @@ export default function AssistantScreen() {
         },
       });
 
-      console.log('MCP response received:', response);
-
       const assistantMessage: Message = {
-        id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `assistant-${Date.now()}`,
         text: response.content,
         isUser: false,
         timestamp: new Date(),
-        isOffline: response.metadata?.offline || false,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Failed to send message:', error);
-      
-      // Fallback response
+      console.error("Message send failed:", error);
       const errorMessage: Message = {
-        id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        text: 'I\'m sorry, I\'m having trouble connecting right now. Please try again later.',
+        id: `error-${Date.now()}`,
+        text: "Connection error. Please try again.",
         isUser: false,
         timestamp: new Date(),
         isOffline: true,
       };
-
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[
-      styles.messageContainer,
-      item.isUser ? styles.userMessage : styles.assistantMessage,
-    ]}>
-      <View style={[
-        styles.messageBubble,
-        item.isUser ? styles.userBubble : styles.assistantBubble,
-        item.isOffline && styles.offlineBubble,
-      ]}>
+    <View
+      style={[
+        styles.messageContainer,
+        item.isUser
+          ? styles.userMessageContainer
+          : styles.assistantMessageContainer,
+      ]}
+    >
+      <View
+        style={[
+          styles.messageBubble,
+          item.isUser ? styles.userBubble : styles.assistantBubble,
+        ]}
+      >
         {item.imageUri && (
           <Image source={{ uri: item.imageUri }} style={styles.messageImage} />
         )}
         {item.text && (
-          <Text style={[
-            styles.messageText,
-            item.isUser ? styles.userText : styles.assistantText,
-            item.isOffline && styles.offlineText,
-          ]}>
+          <Text
+            style={[
+              styles.messageText,
+              item.isUser ? styles.userText : styles.assistantText,
+            ]}
+          >
             {item.text}
           </Text>
         )}
-        <Text style={styles.timestamp}>
-          {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
       </View>
+      <Text style={styles.timestamp}>
+        {item.timestamp.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </Text>
     </View>
   );
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gallery Assistant</Text>
-        <View style={styles.connectionStatus}>
-          <View style={[
-            styles.statusDot,
-            isConnected ? styles.connectedDot : styles.disconnectedDot,
-          ]} />
-          <Text style={styles.statusText}>
-            {isConnected ? 'Connected' : 'Offline'}
-          </Text>
+        <View>
+          <Text style={styles.headerTitle}>Assistant</Text>
+          <View style={styles.statusRow}>
+            <View
+              style={[styles.statusDot, isConnected && styles.statusDotActive]}
+            />
+            <Text style={styles.statusText}>
+              {isConnected ? "Active" : "Connecting"}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Messages */}
       <FlatList
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         style={styles.messagesList}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Input Area */}
+      {isTyping && (
+        <View style={styles.typingContainer}>
+          <ActivityIndicator size="small" color="#94a3b8" />
+        </View>
+      )}
+
       <View style={styles.inputArea}>
-        {/* Selected Image Preview */}
         {selectedImage && (
           <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-            <TouchableOpacity style={styles.removeImageButton} onPress={removeImage}>
-              <Ionicons name="close-circle" size={24} color="#ef4444" />
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.imagePreview}
+            />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={removeImage}
+            >
+              <Ionicons name="close-circle" size={24} color="#000" />
             </TouchableOpacity>
           </View>
         )}
-        
-        {/* Input Container */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
-            <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
-              <Ionicons name="attach" size={24} color="#64748b" />
-            </TouchableOpacity>
-            
-            <TextInput
-              style={styles.textInput}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Message Gallery Assistant..."
-              placeholderTextColor="#94a3b8"
-              multiline
-              maxLength={500}
-              editable={!isTyping}
-            />
-            
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                ((!inputText.trim() && !selectedImage) || isTyping) && styles.disabledButton,
-              ]}
-              onPress={handleSendMessage}
-              disabled={(!inputText.trim() && !selectedImage) || isTyping}
-            >
-              {isTyping ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Ionicons name="send" size={20} color="#ffffff" />
-              )}
-            </TouchableOpacity>
-          </View>
+
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
+            <Ionicons name="add" size={26} color="#000" />
+          </TouchableOpacity>
+
+          <TextInput
+            style={styles.textInput}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Type a message..."
+            placeholderTextColor="#94a3b8"
+            multiline
+            editable={!isTyping}
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !inputText.trim() && !selectedImage && styles.sendButtonDisabled,
+            ]}
+            onPress={handleSendMessage}
+            disabled={(!inputText.trim() && !selectedImage) || isTyping}
+          >
+            <Ionicons name="arrow-up" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -297,171 +264,149 @@ export default function AssistantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#ffffff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: "#f1f5f9",
+    backgroundColor: "#ffffff",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#000000",
   },
-  connectionStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#cbd5e1",
     marginRight: 6,
   },
-  connectedDot: {
-    backgroundColor: '#10b981',
-  },
-  disconnectedDot: {
-    backgroundColor: '#ef4444',
+  statusDotActive: {
+    backgroundColor: "#22c55e",
   },
   statusText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   messagesList: {
     flex: 1,
   },
-  messagesContainer: {
-    padding: 16,
+  messagesContent: {
+    padding: 24,
+    gap: 20,
   },
   messageContainer: {
-    marginBottom: 16,
+    maxWidth: "85%",
   },
-  userMessage: {
-    alignItems: 'flex-end',
+  userMessageContainer: {
+    alignSelf: "flex-end",
   },
-  assistantMessage: {
-    alignItems: 'flex-start',
+  assistantMessageContainer: {
+    alignSelf: "flex-start",
   },
   messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
   },
   userBubble: {
-    backgroundColor: '#3b82f6',
-    borderBottomRightRadius: 4,
+    backgroundColor: "#000000",
   },
   assistantBubble: {
-    backgroundColor: '#ffffff',
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  offlineBubble: {
-    backgroundColor: '#fef3c7',
-    borderColor: '#f59e0b',
+    backgroundColor: "#f1f5f9",
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
   },
   userText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   assistantText: {
-    color: '#1e293b',
-  },
-  offlineText: {
-    color: '#92400e',
+    color: "#000000",
   },
   timestamp: {
     fontSize: 10,
-    color: '#94a3b8',
-    marginTop: 4,
-    alignSelf: 'flex-end',
+    color: "#94a3b8",
+    marginTop: 6,
+    marginHorizontal: 4,
+  },
+  typingContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    alignItems: "flex-start",
   },
   inputArea: {
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+    backgroundColor: "#ffffff",
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16, // Safe area for iOS
+    borderTopColor: "#f1f5f9",
   },
   imagePreviewContainer: {
-    position: 'relative',
-    margin: 16,
-    marginBottom: 8,
+    flexDirection: "row",
+    marginBottom: 12,
   },
   imagePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    width: 80,
+    height: 80,
+    borderRadius: 16,
   },
   removeImageButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-  },
-  inputContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginLeft: -12,
+    marginTop: -12,
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#f8fafc',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   attachButton: {
-    padding: 12,
-    marginRight: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
   },
   textInput: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 16,
-    color: '#1e293b',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    textAlignVertical: 'top',
+    maxHeight: 120,
   },
   sendButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  disabledButton: {
-    backgroundColor: '#cbd5e1',
+  sendButtonDisabled: {
+    opacity: 0.3,
   },
   messageImage: {
     width: 200,
     height: 150,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#f1f5f9',
   },
 });

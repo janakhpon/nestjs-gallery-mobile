@@ -1,88 +1,79 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Gallery App</Text>
-        <Text style={styles.subtitle}>Simple Mobile Gallery</Text>
+        <Text style={styles.title}>Gallery</Text>
+        <Text style={styles.subtitle}>Curate your collection</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.featuresContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.featureCard}
-            onPress={() => router.push('/gallery')}
+            onPress={() => router.push("/gallery")}
           >
-            <Ionicons name="images-outline" size={32} color="#3b82f6" />
-            <Text style={styles.featureTitle}>Gallery</Text>
-            <Text style={styles.featureDescription}>
-              View and manage your images
-            </Text>
+            <View style={styles.iconContainer}>
+              <Ionicons name="images-outline" size={24} color="#000" />
+            </View>
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>Library</Text>
+              <Text style={styles.featureDescription}>
+                View and manage images
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.featureCard}
-            onPress={() => router.push('/upload')}
+            onPress={() => router.push("/upload")}
           >
-            <Ionicons name="cloud-upload-outline" size={32} color="#3b82f6" />
-            <Text style={styles.featureTitle}>Upload</Text>
-            <Text style={styles.featureDescription}>
-              Add new images to your gallery
-            </Text>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#f1f5f9" }]}
+            >
+              <Ionicons name="add-outline" size={24} color="#000" />
+            </View>
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>Upload</Text>
+              <Text style={styles.featureDescription}>Add new content</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.featureCard}
-            onPress={() => router.push('/assistant')}
+            onPress={() => router.push("/assistant")}
           >
-            <Ionicons name="chatbubble-outline" size={32} color="#3b82f6" />
-            <Text style={styles.featureTitle}>Assistant</Text>
-            <Text style={styles.featureDescription}>
-              Get help with your gallery
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.featureCard}
-            onPress={() => router.push('/test-mcp')}
-          >
-            <Ionicons name="bug-outline" size={32} color="#ef4444" />
-            <Text style={styles.featureTitle}>Test MCP</Text>
-            <Text style={styles.featureDescription}>
-              Test MCP connection specifically
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.featureCard}
-            onPress={() => router.push('/direct-test')}
-          >
-            <Ionicons name="flash-outline" size={32} color="#f59e0b" />
-            <Text style={styles.featureTitle}>Direct Test</Text>
-            <Text style={styles.featureDescription}>
-              Test direct fetch to MCP endpoint
-            </Text>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#f1f5f9" }]}
+            >
+              <Ionicons name="sparkles-outline" size={24} color="#000" />
+            </View>
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>Assistant</Text>
+              <Text style={styles.featureDescription}>
+                AI-powered management
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={24} color="#3b82f6" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>About This App</Text>
-            <Text style={styles.infoText}>
-              This is a simple gallery app that connects to your NestJS backend. 
-              You can view, upload, and manage your images.
-            </Text>
+        <View style={styles.showcaseContainer}>
+          <Text style={styles.showcaseLabel}>Standardized via</Text>
+          <View style={styles.showcaseBadge}>
+            <Ionicons name="layers-outline" size={14} color="#64748b" />
+            <Text style={styles.showcaseText}>Model Context Protocol</Text>
           </View>
         </View>
       </ScrollView>
@@ -93,79 +84,88 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#ffffff",
   },
   header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingTop: 80,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    backgroundColor: "#ffffff",
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 4,
+    fontSize: 40,
+    fontWeight: "800",
+    color: "#000000",
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: "#94a3b8",
+    marginTop: 4,
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 24,
   },
   featuresContainer: {
-    marginBottom: 24,
+    gap: 12,
   },
   featureCard: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  featureText: {
+    flex: 1,
+    marginLeft: 16,
   },
   featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginTop: 12,
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#000000",
   },
   featureDescription: {
     fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
+    color: "#64748b",
+    marginTop: 2,
   },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  showcaseContainer: {
+    marginTop: 60,
+    alignItems: "center",
+    paddingBottom: 40,
   },
-  infoContent: {
-    flex: 1,
-    marginLeft: 12,
+  showcaseLabel: {
+    fontSize: 12,
+    color: "#94a3b8",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
   },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
+  showcaseBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 6,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
+  showcaseText: {
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "600",
   },
 });

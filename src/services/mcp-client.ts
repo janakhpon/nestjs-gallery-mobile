@@ -29,6 +29,7 @@ class MCPClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: JSON.stringify(data),
         signal: controller.signal,
@@ -55,9 +56,9 @@ class MCPClient {
     try {
       console.log('Sending MCP message to:', `${MCP_BASE_URL}/chat`);
       console.log('Request:', request);
-      
+
       const response = await this.makeRequest<MCPResponse>('/chat', request);
-      
+
       console.log('MCP response received:', response);
       return response;
     } catch (error) {
@@ -71,7 +72,7 @@ class MCPClient {
   // Get intelligent fallback response when MCP is unavailable
   private getFallbackResponse(message: string): MCPResponse {
     const lowerMessage = message.toLowerCase();
-    
+
     // Gallery-related responses
     if (lowerMessage.includes('gallery') || lowerMessage.includes('image') || lowerMessage.includes('photo')) {
       return {
@@ -82,7 +83,7 @@ class MCPClient {
         },
       };
     }
-    
+
     // Upload-related responses
     if (lowerMessage.includes('upload') || lowerMessage.includes('add') || lowerMessage.includes('new')) {
       return {
@@ -93,7 +94,7 @@ class MCPClient {
         },
       };
     }
-    
+
     // Search-related responses
     if (lowerMessage.includes('search') || lowerMessage.includes('find') || lowerMessage.includes('look')) {
       return {
@@ -104,7 +105,7 @@ class MCPClient {
         },
       };
     }
-    
+
     // Help-related responses
     if (lowerMessage.includes('help') || lowerMessage.includes('how') || lowerMessage.includes('what')) {
       return {
@@ -115,7 +116,7 @@ class MCPClient {
         },
       };
     }
-    
+
     // Default fallback response
     return {
       content: 'I\'m currently offline, but I can still help you with basic gallery questions. Try asking about viewing images, uploading photos, or searching your collection. When I\'m back online, I\'ll have access to more advanced features!',
@@ -140,7 +141,7 @@ class MCPClient {
   async testConnection(): Promise<boolean> {
     try {
       console.log('Testing MCP connection to:', `${MCP_BASE_URL}/chat`);
-      
+
       // Create AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout

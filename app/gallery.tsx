@@ -1,20 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from 'react-native';
-import { apiClient, Image as ApiImage } from '../src/services/api-client';
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { apiClient, Image as ApiImage } from "../src/services/api-client";
 
 export default function GalleryScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [images, setImages] = useState<ApiImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -25,82 +26,50 @@ export default function GalleryScreen() {
   // Ensure images is always an array
   const safeImages = Array.isArray(images) ? images : [];
 
+  const loadImages = useCallback(
+    async (page: number = 1, append: boolean = false) => {
+      try {
+        if (page === 1) {
+          setIsLoading(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+        setIsError(false);
+
+        const data = await apiClient.getImages({
+          page,
+          limit: 10,
+          search: searchQuery || undefined,
+        });
+
+        const safeData = Array.isArray(data) ? data : [];
+
+        if (append) {
+          setImages((prev) => {
+            const prevArray = Array.isArray(prev) ? prev : [];
+            return [...prevArray, ...safeData];
+          });
+        } else {
+          setImages(safeData);
+        }
+
+        setHasMore(safeData.length === 10);
+        setCurrentPage(page);
+      } catch (error) {
+        console.error("Error:", error);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [searchQuery]
+  );
+
   // Load images from API
   useEffect(() => {
     loadImages();
-  }, []);
-
-  const loadImages = async (page: number = 1, append: boolean = false) => {
-    try {
-      if (page === 1) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-      setIsError(false);
-      
-      const data = await apiClient.getImages({ 
-        page, 
-        limit: 10,
-        search: searchQuery || undefined 
-      });
-      
-      // Ensure data is always an array
-      const safeData = Array.isArray(data) ? data : [];
-      
-      if (append) {
-        setImages(prev => {
-          const prevArray = Array.isArray(prev) ? prev : [];
-          return [...prevArray, ...safeData];
-        });
-      } else {
-        setImages(safeData);
-      }
-      
-      // For fallback data, we'll simulate pagination
-      setHasMore(safeData.length === 10);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Failed to load images:', error);
-      setIsError(false);
-      
-      try {
-        // The API client will return fallback data automatically
-        const fallbackData = await apiClient.getImages({ 
-          page, 
-          limit: 10,
-          search: searchQuery || undefined 
-        });
-        
-        // Ensure fallback data is always an array
-        const safeFallbackData = Array.isArray(fallbackData) ? fallbackData : [];
-        
-        if (append) {
-          setImages(prev => {
-            const prevArray = Array.isArray(prev) ? prev : [];
-            return [...prevArray, ...safeFallbackData];
-          });
-        } else {
-          setImages(safeFallbackData);
-        }
-        
-        setHasMore(safeFallbackData.length === 10);
-        setCurrentPage(page);
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-        // If even fallback fails, ensure we have an empty array
-        if (append) {
-          setImages(prev => Array.isArray(prev) ? prev : []);
-        } else {
-          setImages([]);
-        }
-        setHasMore(false);
-      }
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+  }, [loadImages]);
 
   // Handle search
   const handleSearch = (query: string) => {
@@ -118,32 +87,46 @@ export default function GalleryScreen() {
   };
 
   // Filter images (for client-side filtering if needed)
-  const filteredImages = safeImages.filter(image =>
-    (image.title?.toLowerCase().includes((searchQuery || '').toLowerCase()) || false) ||
-    (image.description?.toLowerCase().includes((searchQuery || '').toLowerCase()) || false)
+  const filteredImages = safeImages.filter(
+    (image) =>
+      image.title?.toLowerCase().includes((searchQuery || "").toLowerCase()) ||
+      false ||
+      image.description
+        ?.toLowerCase()
+        .includes((searchQuery || "").toLowerCase()) ||
+      false
   );
 
   const renderImage = ({ item }: { item: ApiImage }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.imageCard}
       onPress={() => router.push(`/image/${item.id}`)}
+      activeOpacity={0.9}
     >
       <Image
-        source={{ 
-          uri: item.s3Url || `https://picsum.photos/300/200?random=${item.id}` 
+        source={{
+          uri: item.s3Url || `https://picsum.photos/300/200?random=${item.id}`,
+          headers: item.s3Url?.includes("ngrok")
+            ? { "ngrok-skip-browser-warning": "true" }
+            : {},
         }}
         style={styles.image}
-        resizeMode="cover"
+        contentFit="cover"
+        transition={200}
+        onLoadStart={() =>
+          console.log(`[Gallery] Loading started for ${item.id}: ${item.s3Url}`)
+        }
+        onLoad={() => console.log(`[Gallery] Loading success for ${item.id}`)}
+        onError={(error) =>
+          console.error(`[Gallery] Image load error for ${item.id}:`, error)
+        }
       />
       <View style={styles.imageInfo}>
         <Text style={styles.imageTitle} numberOfLines={1}>
-          {item.title || 'Untitled'}
+          {item.title || "Untitled"}
         </Text>
-        <Text style={styles.imageDescription} numberOfLines={2}>
-          {item.description || 'No description'}
-        </Text>
-        <Text style={styles.imageDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
+        <Text style={styles.imageDescription} numberOfLines={1}>
+          {item.description || "No description"}
         </Text>
       </View>
     </TouchableOpacity>
@@ -153,25 +136,33 @@ export default function GalleryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gallery</Text>
-        <TouchableOpacity style={styles.uploadButton}>
-          <Ionicons name="add" size={24} color="#3b82f6" />
+        <Text style={styles.headerTitle}>Library</Text>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => router.push("/upload")}
+        >
+          <Ionicons name="add" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+        <Ionicons
+          name="search"
+          size={20}
+          color="#94a3b8"
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search images..."
+          placeholder="Search collections..."
           placeholderTextColor="#94a3b8"
           value={searchQuery}
           onChangeText={handleSearch}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => handleSearch('')} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#64748b" />
+          <TouchableOpacity onPress={() => handleSearch("")}>
+            <Ionicons name="close-circle" size={20} color="#cbd5e1" />
           </TouchableOpacity>
         )}
       </View>
@@ -179,17 +170,15 @@ export default function GalleryScreen() {
       {/* Images Grid */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text style={styles.loadingText}>Loading images...</Text>
+          <ActivityIndicator size="small" color="#000" />
         </View>
       ) : isError ? (
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-          <Text style={styles.errorTitle}>Failed to load images</Text>
-          <Text style={styles.errorSubtitle}>
-            Please check your connection and try again
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadImages()}>
+          <Text style={styles.errorTitle}>Error loading library</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => loadImages()}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -207,17 +196,15 @@ export default function GalleryScreen() {
           ListFooterComponent={
             isLoadingMore ? (
               <View style={styles.loadingMoreContainer}>
-                <ActivityIndicator size="small" color="#3b82f6" />
-                <Text style={styles.loadingMoreText}>Loading more...</Text>
+                <ActivityIndicator size="small" color="#000" />
               </View>
             ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="images-outline" size={64} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No images found</Text>
+              <Text style={styles.emptyTitle}>No items</Text>
               <Text style={styles.emptySubtitle}>
-                {searchQuery ? 'Try adjusting your search terms' : 'Upload your first image to get started'}
+                Try adjusting your search
               </Text>
             </View>
           }
@@ -230,165 +217,130 @@ export default function GalleryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#ffffff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    backgroundColor: "#ffffff",
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#000000",
+    letterSpacing: -0.5,
   },
   uploadButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    margin: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    marginHorizontal: 24,
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1e293b',
-    paddingVertical: 4,
-  },
-  clearButton: {
-    padding: 4,
+    color: "#000000",
+    paddingVertical: 0,
   },
   listContainer: {
-    padding: 8,
+    padding: 16,
   },
   row: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    justifyContent: "space-between",
+    gap: 12,
   },
   imageCard: {
-    width: '48%',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    width: "48%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+    overflow: "hidden",
   },
   image: {
-    width: '100%',
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    width: "100%",
+    height: 160,
+    backgroundColor: "#f8fafc",
   },
   imageInfo: {
     padding: 12,
   },
   imageTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#000000",
   },
   imageDescription: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  imageDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: "#94a3b8",
+    marginTop: 2,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#64748b',
-    marginTop: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
   errorTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorSubtitle: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 24,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#000000",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   retryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 100,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000000",
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    fontSize: 14,
+    color: "#94a3b8",
+    marginTop: 4,
   },
   loadingMoreContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  loadingMoreText: {
-    fontSize: 14,
-    color: '#64748b',
-    marginLeft: 8,
+    paddingVertical: 24,
+    alignItems: "center",
   },
 });
