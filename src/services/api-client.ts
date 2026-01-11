@@ -29,7 +29,7 @@ class ApiClient {
 
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     try {
       // Create AbortController for timeout
       const controller = new AbortController();
@@ -38,6 +38,8 @@ class ApiClient {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
           ...options.headers,
         },
         ...options,
@@ -47,17 +49,34 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        const text = await response.text();
+        console.warn(`API Error response for ${url}:`, text);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       this.isOnline = true;
       return response.json();
     } catch (error) {
-      this.isOnline = false;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.warn(`API request failed: ${errorMessage}`);
+      console.warn(`API request failed for ${url}: ${errorMessage}`);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn(`Request to ${url} timed out`);
+      }
       throw error;
     }
+  }
+
+  // Helper to rewrite local S3 URLs to proxy URLs
+  private mapImageUrls(images: Image[]): Image[] {
+    return images.map(img => {
+      if (img.s3Url?.includes('127.0.0.1') || img.s3Url?.includes('localhost')) {
+        return {
+          ...img,
+          s3Url: `${API_BASE_URL}/images/${img.id}/proxy`
+        };
+      }
+      return img;
+    });
   }
 
   // Check if API is available
@@ -79,11 +98,11 @@ class ApiClient {
       if (params.search) queryParams.append('search', params.search);
 
       const endpoint = `/images${queryParams.toString() ? `?${queryParams}` : ''}`;
-      const result = await this.makeRequest<{images: Image[], total: number, page: number, limit: number, totalPages: number}>(endpoint);
-      
-      // Extract images array from paginated response
+      const result = await this.makeRequest<{ images: Image[], total: number, page: number, limit: number, totalPages: number }>(endpoint);
+
+      // Extract and map images
       const images = result?.images || [];
-      return Array.isArray(images) ? images : [];
+      return this.mapImageUrls(Array.isArray(images) ? images : []);
     } catch (error) {
       console.warn('API unavailable, using fallback data');
       const fallbackResult = this.getFallbackImages(params);
@@ -94,7 +113,7 @@ class ApiClient {
   // Fallback images when API is unavailable
   private getFallbackImages(params: { page?: number; limit?: number; search?: string } = {}): Image[] {
     const allMockImages: Image[] = [];
-    
+
     // Generate more mock images for pagination
     for (let i = 1; i <= 30; i++) {
       allMockImages.push({
@@ -136,7 +155,8 @@ class ApiClient {
   // Get single image
   async getImage(id: string): Promise<Image> {
     try {
-      return await this.makeRequest<Image>(`/images/${id}`);
+      const result = await this.makeRequest<Image>(`/images/${id}`);
+      return this.mapImageUrls([result])[0];
     } catch (error) {
       console.warn('API unavailable, using fallback image data');
       return this.getFallbackImage(id);
@@ -167,6 +187,9 @@ class ApiClient {
     try {
       const response = await fetch(`${API_BASE_URL}/images`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: formData,
       });
 
@@ -185,7 +208,7 @@ class ApiClient {
   private getFallbackUploadResponse(formData: FormData): Image {
     const title = formData.get('title') as string || 'Uploaded Image';
     const description = formData.get('description') as string || 'Uploaded via mobile app (offline mode)';
-    
+
     return {
       id: `fallback-${Date.now()}`,
       title,
@@ -206,10 +229,11 @@ class ApiClient {
   // Update image
   async updateImage(id: string, data: CreateImageData): Promise<Image> {
     try {
-      return await this.makeRequest<Image>(`/images/${id}`, {
+      const result = await this.makeRequest<Image>(`/images/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
+      return this.mapImageUrls([result])[0];
     } catch (error) {
       console.warn('Update failed, using fallback response');
       return this.getFallbackImage(id);
@@ -248,6 +272,11 @@ class ApiClient {
       console.warn('Health check failed, returning offline status');
       return { status: 'offline' };
     }
+  }
+
+  // Get base URL for proxy needs
+  getBaseUrl(): string {
+    return API_BASE_URL;
   }
 }
 
