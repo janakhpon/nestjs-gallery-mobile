@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../src/services/api-client";
 
 export default function UploadScreen() {
@@ -73,84 +75,118 @@ export default function UploadScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Add Image</Text>
-      </View>
-
-      <View style={styles.content}>
-        {/* Image Selection */}
-        <View style={styles.section}>
-          {selectedImage ? (
-            <View style={styles.selectedImageContainer}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.selectedImage}
-              />
-              <TouchableOpacity
-                style={styles.changeImageButton}
-                onPress={pickImage}
-              >
-                <Ionicons name="refresh" size={16} color="#000" />
-                <Text style={styles.changeImageText}>Replace</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.imageSelectionButton}
-              onPress={pickImage}
-            >
-              <Ionicons name="cloud-upload-outline" size={40} color="#cbd5e1" />
-              <Text style={styles.imageSelectionButtonText}>
-                Select from Library
-              </Text>
-            </TouchableOpacity>
-          )}
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Entry</Text>
+          <View style={{ width: 40 }} />
         </View>
 
-        {/* Image Details */}
-        <View style={styles.section}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.textInput}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Title"
-              placeholderTextColor="#94a3b8"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Description (optional)"
-              placeholderTextColor="#94a3b8"
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-        </View>
-
-        {/* Upload Button */}
-        <TouchableOpacity
-          style={[
-            styles.uploadButton,
-            (!selectedImage || !title.trim() || isUploading) &&
-              styles.disabledButton,
-          ]}
-          onPress={handleUpload}
-          disabled={!selectedImage || !title.trim() || isUploading}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
         >
-          {isUploading ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={styles.uploadButtonText}>Create Entry</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Image Selection */}
+            <View style={styles.section}>
+              {selectedImage ? (
+                <View style={styles.selectedImageContainer}>
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.selectedImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.imageOverlay}>
+                    <TouchableOpacity
+                      style={styles.replaceButton}
+                      onPress={pickImage}
+                    >
+                      <Ionicons name="refresh" size={18} color="#ffffff" />
+                      <Text style={styles.replaceButtonText}>
+                        Replace Image
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.imageSelectionButton}
+                  onPress={pickImage}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.uploadIconCircle}>
+                    <Ionicons name="cloud-upload" size={32} color="#3b82f6" />
+                  </View>
+                  <Text style={styles.imageSelectionTitle}>
+                    Tap to Select Image
+                  </Text>
+                  <Text style={styles.imageSelectionSubtitle}>
+                    JPG, PNG, HEIC supported
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Form */}
+            <View style={styles.formSection}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Title</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Give it a name"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Add details about this image..."
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Footer Action */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                (!selectedImage || !title.trim() || isUploading) &&
+                  styles.disabledButton,
+              ]}
+              onPress={handleUpload}
+              disabled={!selectedImage || !title.trim() || isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.uploadButtonText}>Create Entry</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -159,98 +195,164 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
+  safeArea: {
+    flex: 1,
+  },
   header: {
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#000000",
-    letterSpacing: -0.5,
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: "#f8fafc",
   },
-  content: {
-    paddingHorizontal: 24,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   imageSelectionButton: {
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f8fafc",
-    height: 200,
+    height: 240,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
     borderStyle: "dashed",
   },
-  imageSelectionButtonText: {
+  uploadIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  imageSelectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#94a3b8",
-    marginTop: 12,
+    fontWeight: "700",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  imageSelectionSubtitle: {
+    fontSize: 13,
+    color: "#64748b",
   },
   selectedImageContainer: {
-    backgroundColor: "#ffffff",
+    height: 300,
     borderRadius: 24,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    position: "relative",
+    shadowColor: "#64748b",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   selectedImage: {
     width: "100%",
-    height: 240,
-    backgroundColor: "#f8fafc",
+    height: "100%",
   },
-  changeImageButton: {
+  imageOverlay: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.5)", // Use a semi-transparent background
+  },
+  replaceButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 12,
+    alignSelf: "center",
   },
-  changeImageText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#000000",
+  replaceButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginLeft: 6,
+  },
+  formSection: {
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#475569",
     marginLeft: 4,
   },
-  inputContainer: {
-    marginBottom: 16,
-  },
   textInput: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f8fafc",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#000",
+    color: "#0f172a",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   textArea: {
     height: 120,
-    textAlignVertical: "top",
+    paddingTop: 14,
+  },
+  footer: {
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+    backgroundColor: "#ffffff",
   },
   uploadButton: {
-    backgroundColor: "#000000",
-    paddingVertical: 16,
+    backgroundColor: "#0f172a",
+    paddingVertical: 18,
     borderRadius: 18,
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 40,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disabledButton: {
-    opacity: 0.3,
+    opacity: 0.5,
+    backgroundColor: "#94a3b8",
+    shadowOpacity: 0,
   },
   uploadButtonText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#ffffff",
+    letterSpacing: 0.5,
   },
 });
