@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { mcpClient, MCPResponse } from "../src/services/mcp-client";
 
 interface Message {
@@ -26,6 +28,8 @@ interface Message {
 }
 
 export default function AssistantScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome-message",
@@ -38,6 +42,7 @@ export default function AssistantScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   // Test MCP connection on mount
   useEffect(() => {
@@ -107,6 +112,9 @@ export default function AssistantScreen() {
     setInputText("");
     setSelectedImage(null);
     setIsTyping(true);
+
+    // Scroll to bottom immediately
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
       const response: MCPResponse = await mcpClient.sendMessage({
@@ -180,84 +188,120 @@ export default function AssistantScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Assistant</Text>
-          <View style={styles.statusRow}>
-            <View
-              style={[styles.statusDot, isConnected && styles.statusDotActive]}
-            />
-            <Text style={styles.statusText}>
-              {isConnected ? "Active" : "Connecting"}
-            </Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close" size={24} color="#0f172a" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Assistant</Text>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  isConnected && styles.statusDotActive,
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {isConnected ? "Online" : "Connecting..."}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
 
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        style={styles.messagesList}
-        contentContainerStyle={styles.messagesContent}
-        showsVerticalScrollIndicator={false}
-      />
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        />
 
-      {isTyping && (
-        <View style={styles.typingContainer}>
-          <ActivityIndicator size="small" color="#94a3b8" />
-        </View>
-      )}
-
-      <View style={styles.inputArea}>
-        {selectedImage && (
-          <View style={styles.imagePreviewContainer}>
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.imagePreview}
-            />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={removeImage}
-            >
-              <Ionicons name="close-circle" size={24} color="#000" />
-            </TouchableOpacity>
+        {isTyping && (
+          <View style={styles.typingContainer}>
+            <ActivityIndicator size="small" color="#64748b" />
+            <Text style={styles.typingText}>Assistant is thinking...</Text>
           </View>
         )}
 
-        <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
-            <Ionicons name="add" size={26} color="#000" />
-          </TouchableOpacity>
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              paddingBottom:
+                Platform.OS === "ios" ? Math.max(insets.bottom, 16) : 16,
+            },
+          ]}
+        >
+          {selectedImage && (
+            <View style={styles.imagePreviewContainer}>
+              <View style={styles.imagePreviewWrapper}>
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.imagePreview}
+                />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={removeImage}
+                >
+                  <Ionicons name="close-circle-sharp" size={22} color="#000" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
-          <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type a message..."
-            placeholderTextColor="#94a3b8"
-            multiline
-            editable={!isTyping}
-          />
+          <View style={styles.inputArea}>
+            <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
+              <Ionicons name="add" size={24} color="#64748b" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              !inputText.trim() && !selectedImage && styles.sendButtonDisabled,
-            ]}
-            onPress={handleSendMessage}
-            disabled={(!inputText.trim() && !selectedImage) || isTyping}
-          >
-            <Ionicons name="arrow-up" size={20} color="#fff" />
-          </TouchableOpacity>
+            <TextInput
+              style={styles.textInput}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Ask anything..."
+              placeholderTextColor="#94a3b8"
+              multiline
+              editable={!isTyping}
+              returnKeyType="default"
+              blurOnSubmit={false}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !inputText.trim() &&
+                  !selectedImage &&
+                  styles.sendButtonDisabled,
+              ]}
+              onPress={handleSendMessage}
+              disabled={(!inputText.trim() && !selectedImage) || isTyping}
+            >
+              <Ionicons name="arrow-up" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -266,18 +310,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
+  keyboardView: {
+    flex: 1,
+  },
   header: {
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
     backgroundColor: "#ffffff",
+    zIndex: 10,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    marginRight: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "800",
-    color: "#000000",
+    color: "#0f172a",
+    letterSpacing: -0.5,
   },
   statusRow: {
     flexDirection: "row",
@@ -288,28 +349,33 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#e2e8f0",
     marginRight: 6,
   },
   statusDotActive: {
     backgroundColor: "#22c55e",
+    shadowColor: "#22c55e",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748b",
   },
   messagesList: {
     flex: 1,
+    backgroundColor: "#f8fafc",
   },
   messagesContent: {
-    padding: 24,
-    gap: 20,
+    padding: 20,
+    paddingBottom: 40,
+    gap: 16,
   },
   messageContainer: {
     maxWidth: "85%",
+    marginBottom: 4,
   },
   userMessageContainer: {
     alignSelf: "flex-end",
@@ -320,93 +386,137 @@ const styles = StyleSheet.create({
   messageBubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 18,
+    borderCurve: "continuous",
   },
   userBubble: {
-    backgroundColor: "#000000",
+    backgroundColor: "#0f172a",
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#ffffff",
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   messageText: {
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   userText: {
     color: "#ffffff",
   },
   assistantText: {
-    color: "#000000",
+    color: "#1e293b",
   },
   timestamp: {
     fontSize: 10,
     color: "#94a3b8",
-    marginTop: 6,
+    marginTop: 4,
     marginHorizontal: 4,
+    alignSelf: "flex-end",
   },
   typingContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    alignItems: "flex-start",
-  },
-  inputArea: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 40 : 20,
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
-  },
-  imagePreviewContainer: {
-    flexDirection: "row",
-    marginBottom: 12,
-  },
-  imagePreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-  },
-  removeImageButton: {
-    marginLeft: -12,
-    marginTop: -12,
-  },
-  inputRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#f8fafc",
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+    gap: 8,
+  },
+  typingText: {
+    fontSize: 12,
+    color: "#64748b",
+  },
+  inputWrapper: {
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  },
+  imagePreviewContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  imagePreviewWrapper: {
+    position: "relative",
+    width: 60,
+    height: 60,
+  },
+  imagePreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+  },
+  inputArea: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
   },
   attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
-    borderRadius: 22,
+    backgroundColor: "#f8fafc",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingTop: 10,
     fontSize: 16,
-    maxHeight: 120,
+    maxHeight: 100,
+    minHeight: 44,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#000000",
+    backgroundColor: "#0f172a",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   sendButtonDisabled: {
-    opacity: 0.3,
+    opacity: 0.5,
+    backgroundColor: "#cbd5e1",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   messageImage: {
     width: 200,
     height: 150,
     borderRadius: 12,
     marginBottom: 8,
+    backgroundColor: "#f1f5f9",
   },
 });
