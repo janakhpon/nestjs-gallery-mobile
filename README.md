@@ -13,3 +13,5 @@ cp env.example .env
 # 3. Development Mode
 npm run dev
 ```
+
+[android installer on Expo](https://expo.dev/accounts/janakhpon/projects/mcp-gallery/builds/922214d8-c5b4-4fe8-baaf-f36b098b20ba)

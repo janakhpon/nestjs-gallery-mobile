@@ -42,6 +42,9 @@ export default function AssistantScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<"openai" | "gemini">(
+    "openai",
+  );
   const flatListRef = useRef<FlatList>(null);
 
   // Test MCP connection on mount
@@ -124,6 +127,7 @@ export default function AssistantScreen() {
           isConnected,
           hasImage: !!selectedImage,
         },
+        provider: selectedProvider,
       });
 
       const assistantMessage: Message = {
@@ -212,6 +216,42 @@ export default function AssistantScreen() {
               </Text>
             </View>
           </View>
+        </View>
+
+        {/* Provider Selector */}
+        <View style={styles.providerContainer}>
+          <TouchableOpacity
+            style={[
+              styles.providerButton,
+              selectedProvider === "openai" && styles.providerButtonActive,
+            ]}
+            onPress={() => setSelectedProvider("openai")}
+          >
+            <Text
+              style={[
+                styles.providerText,
+                selectedProvider === "openai" && styles.providerTextActive,
+              ]}
+            >
+              OpenAI
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.providerButton,
+              selectedProvider === "gemini" && styles.providerButtonActive,
+            ]}
+            onPress={() => setSelectedProvider("gemini")}
+          >
+            <Text
+              style={[
+                styles.providerText,
+                selectedProvider === "gemini" && styles.providerTextActive,
+              ]}
+            >
+              Gemini
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -363,6 +403,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#64748b",
+  },
+  providerContainer: {
+    flexDirection: "row",
+    marginTop: 16,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  providerButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  providerButtonActive: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  providerText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  providerTextActive: {
+    color: "#0f172a",
   },
   messagesList: {
     flex: 1,
