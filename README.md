@@ -14,4 +14,6 @@ cp env.example .env
 npm run dev
 ```
 
-[android installer on Expo](https://expo.dev/accounts/janakhpon/projects/mcp-gallery/builds/922214d8-c5b4-4fe8-baaf-f36b098b20ba)
+### Try it on Android
+
+[android installer on Expo](https://expo.dev/accounts/janakhpon/projects/mcp-gallery/builds/d8509ccb-9530-42b4-bfd2-681102de7f27)
