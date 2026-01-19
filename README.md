@@ -1,6 +1,6 @@
 # Gallery Mobile
 
-A minimalist mobile companion for the NestJS Gallery API, built with Expo and React Native.
+Mobile demo for MCP article, built with Expo and React Native.
 
 ```bash
 # 1. Install dependencies
@@ -16,4 +16,9 @@ npm run dev
 
 ### Try it on Android
 
-[android installer on Expo](https://expo.dev/accounts/janakhpon/projects/mcp-gallery/builds/d8509ccb-9530-42b4-bfd2-681102de7f27)
+[Android installer on Expo](https://expo.dev/accounts/janakhpon/projects/mcp-gallery/builds/d8509ccb-9530-42b4-bfd2-681102de7f27)
+
+### Resources
+
+- [Read the full article here](https://github.com/janakhpon/mcp-gallery-server/blob/main/README.md)
+- [Read other articles](https://vlog.zinmin.com/)
